@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <title>Sample Jersey Webapp</title>
+  </head>
+  <body>
+  <body>
+    <h1>Sample Jersey Webapp</h1>
+    <h2>Input Text:</h2>
+    <p> {{ inputtext }} </p>
+    <h2>Entity List:</h2>
+    <h3>Size of entity list: {{ entitylistsize }} </h3>
+    <ul>
+      {% for ev in evlist %}
+      <li>{{ ev.conceptInfo.CUI }}: {{ ev.text }}:
+	<em>{{ ev.conceptInfo.preferredName }}</em> :
+	<code> {{ ev.conceptInfo.semanticTypeSet }}</code>: 
+	<code>{{ ev.conceptInfo.sourceSet }}</code>:
+	{{ ev.offset }} : {{ ev.length }} : {{ ev.score }}
+      </li>
+      {% endfor %}
+    <ul>
+    </ul>
+  </body>
+</html>
