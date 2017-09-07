@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.util.Optional;
 import java.util.Map;
 import java.util.ArrayList;
@@ -13,7 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.Enumeration;
-import java.util.Map;
+import java.util.Map;  
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
@@ -46,6 +47,9 @@ import gov.nih.nlm.nls.utils.StringUtils;
 
 import gov.nih.nlm.nls.metamap.lite.resultformats.ResultFormatter;
 import gov.nih.nlm.nls.metamap.lite.resultformats.ResultFormatterRegistry;
+import gov.nih.nlm.nls.metamap.document.BioCDocumentLoader;
+import gov.nih.nlm.nls.metamap.document.BioCDocumentLoaderRegistry;
+
 import com.hubspot.jinjava.Jinjava;
 import bioc.BioCDocument;
 import bioc.BioCPassage;
@@ -119,10 +123,13 @@ public class MetaMapLiteService
     String contextPath = hsr.getServletPath();
     String formTemplate = loadTemplate(rootPath + "/templates/form.html");
     jcontext.put("action", contextPath + "/annotate");
-    jcontext.put("title", "Front Page");
+    jcontext.put("dflist", BioCDocumentLoaderRegistry.listNameSet());
+    jcontext.put("rflist", ResultFormatterRegistry.listNameSet());
+    jcontext.put("sourcelist", 
     String form = this.jinjava.render(formTemplate, jcontext);
     Map<String, Object> fcontext = new HashMap();
     fcontext.put("form", form);
+    fcontext.put("title", "Interactive MetaMapLite");
     String template = loadTemplate(rootPath + "/templates/frontpage.html");
     return this.jinjava.render(template, fcontext);
   }
@@ -179,6 +186,7 @@ public class MetaMapLiteService
    * @return entityList
    */
   public List<Entity> processText(String inputText,
+				  String docFormat,
 				  String resultFormat,
 				  String sourcesString,
 				  String semanticTypesString)
@@ -200,22 +208,25 @@ public class MetaMapLiteService
       String[] semanticTypeList = semanticTypesString.split(",");
       metaMapLiteInst.setSemanticGroup(semanticTypeList);
     }
-    BioCDocument document = FreeText.instantiateBioCDocument(inputText);
-    document.setID("web/rest");
-    for (BioCPassage passage: document.getPassages()) {
-      passage.putInfon("section","text");
+    String documentFormat = "freetext";
+    if (docFormat != null) {
+      documentFormat = docFormat;
     }
-    List<BioCDocument> documentList = new ArrayList<BioCDocument>();
-    documentList.add(document);
-    // System.out.println("documentList=" + documentList);
-    // System.out.println("MetaMapLiteService: metaMapLiteInst = " + metaMapLiteInst);
-      
-    List<Entity> entityList = metaMapLiteInst.processDocumentList(documentList);
-    // System.out.println("entityList.size() = " + entityList.size());
-    // for (Entity entity: entityList) {
-    // 	System.out.println(entity.toString());
-    // }
-    return entityList;
+    BioCDocumentLoader docLoader = new FreeText();
+    if (BioCDocumentLoaderRegistry.contains(documentFormat)) {
+	docLoader = BioCDocumentLoaderRegistry.get(documentFormat);
+	List<BioCDocument> documentList = docLoader.readAsBioCDocumentList(new StringReader(inputText));
+	// System.out.println("documentList=" + documentList);
+	// System.out.println("MetaMapLiteService: metaMapLiteInst = " + metaMapLiteInst);
+	
+	List<Entity> entityList = metaMapLiteInst.processDocumentList(documentList);
+	// System.out.println("entityList.size() = " + entityList.size());
+	// for (Entity entity: entityList) {
+	// 	System.out.println(entity.toString());
+	// }
+	return entityList;
+    }
+    return new ArrayList<Entity>(); // return empty list
   }
 
   /**
@@ -228,6 +239,7 @@ public class MetaMapLiteService
    * @return response as html
    */
   public String processAnnotateHtml(String inputText,
+				    String docFormat,
 				    String resultFormat,
 				    String sourcesString,
 				    String semanticTypesString)
@@ -240,7 +252,7 @@ public class MetaMapLiteService
       if (inputText == null) {
 	return "Error: Required field inputtext not supplied.";
       }
-      List<Entity> entityList = processText(inputText, resultFormat,
+      List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
       System.out.println("resultFormat=" + resultFormat);
       if (resultFormat.length() == 0) {
@@ -258,8 +270,8 @@ public class MetaMapLiteService
 	    evSet.add(ev);
 	  }
 	}
-	Ev[] evArray = evSet.toArray(new Ev[0]);
-	Arrays.sort(evArray, evComparator);
+	 Ev[] evArray = evSet.toArray(new Ev[0]);
+	 Arrays.sort(evArray, evComparator);
 	jcontext.put("evlist", evArray);
 	sb.append(this.jinjava.render(template, jcontext));
       } else if (ResultFormatterRegistry.get(resultFormat) != null) {
@@ -295,11 +307,11 @@ public class MetaMapLiteService
     }
   }
 
-  public String processAnnotateJson(String inputText, String resultFormat,
+  public String processAnnotateJson(String inputText, String docFormat, String resultFormat,
 				    String sourcesString, String semanticTypesString)
   {
     try {
-      List<Entity> entityList = processText(inputText, resultFormat,
+      List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
       StringBuilder sb = new StringBuilder();
       if (ResultFormatterRegistry.get(resultFormat) != null) {
@@ -320,11 +332,11 @@ public class MetaMapLiteService
     }
   }
 
-  public String processAnnotateXml(String inputText, String resultFormat,
+  public String processAnnotateXml(String inputText, String docFormat, String resultFormat,
 				   String sourcesString, String semanticTypesString)
   {
     try {
-      List<Entity> entityList = processText(inputText, resultFormat,
+      List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
       StringBuilder sb = new StringBuilder();
       if (ResultFormatterRegistry.get(resultFormat) != null) {
@@ -345,11 +357,11 @@ public class MetaMapLiteService
     }
   }
 
-  public String processAnnotatePlain(String inputText, String resultFormat,
+  public String processAnnotatePlain(String inputText, String docFormat, String resultFormat,
 				   String sourcesString, String semanticTypesString)
   {
     try {
-      List<Entity> entityList = processText(inputText, resultFormat,
+      List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
       StringBuilder sb = new StringBuilder();
       if (ResultFormatterRegistry.get(resultFormat) != null) {
@@ -375,6 +387,7 @@ public class MetaMapLiteService
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   public String processAnnotateFormInput
     (@FormParam("inputtext") String inputText,
+     @DefaultValue("freetext") @FormParam("docformat") String docFormat,
      @DefaultValue("html") @FormParam("resultformat") String resultFormat,
      @DefaultValue("all") @FormParam("sources") String sourcesString,
      @DefaultValue("all") @FormParam("semtypes") String semanticTypesString)
@@ -382,6 +395,7 @@ public class MetaMapLiteService
 
     System.out.println("multipart form data: request.inputext:  " + inputText);
     return processAnnotateHtml(inputText,
+			       docFormat,
 			       resultFormat,
 			       sourcesString,
 			       semanticTypesString);
@@ -392,12 +406,14 @@ public class MetaMapLiteService
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   public String processAnnotateUrlEncodedFormInput
     (@FormParam("inputtext") String inputText,
+     @DefaultValue("freetext") @FormParam("docformat") String docFormat,
      @DefaultValue("html") @FormParam("resultformat") String resultFormat,
      @DefaultValue("all") @FormParam("sourcesString") String sourcesString,
      @DefaultValue("all") @FormParam("semanticTypeString") String semanticTypesString)
   {
     System.out.println("www form urlencoded: request.inputext:  " + inputText);
     return processAnnotateHtml(inputText,
+			       docFormat,
 			       resultFormat,
 			       sourcesString,
 			       semanticTypesString);
@@ -412,6 +428,7 @@ public class MetaMapLiteService
   {
     System.out.println("JSON: request.inputext:  " + request.getInputtext());
     return processAnnotateJson(request.getInputtext(),
+			       "freetext" /*docformat*/,
 			       "brat" /*resultFormat*/,
 			       "all" /*sourcesString*/,
 			       "all" /*semanticTypesString*/);
@@ -426,6 +443,7 @@ public class MetaMapLiteService
   {
     System.out.println("JSON: request.inputext:  " + request.getInputtext());
     return processAnnotateJson(request.getInputtext(),
+			       "freetext" /*docformat*/,
 			       "brat" /*resultFormat*/,
 			       "all" /*sourcesString*/,
 			       "all" /*semanticTypesString*/);
@@ -439,6 +457,7 @@ public class MetaMapLiteService
   {
     System.out.println("XML: request.inputext:  " + request.getInputtext());
     return processAnnotateXml(request.getInputtext(),
+			      "freetext" /*docformat*/,
 			      "brat" /*resultFormat*/,
 			      "all" /*sourcesString*/,
 			      "all" /*semanticTypesString*/);
@@ -453,6 +472,7 @@ public class MetaMapLiteService
   {
     System.out.println("Text/Plain: request.inputext:  " + request.getInputtext());
     return processAnnotatePlain(request.getInputtext(),
+			       "freetext" /*docformat*/,
 			       "brat" /*resultFormat*/,
 			       "all" /*sourcesString*/,
 			       "all" /*semanticTypesString*/);
