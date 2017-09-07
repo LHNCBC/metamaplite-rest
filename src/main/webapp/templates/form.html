@@ -2,16 +2,35 @@
   <textarea name="inputtext" rows="40" cols="150"></textarea>
   <table>
     <tr>
-      <td><label for="inputformat">input format</label></td>
-      <td><input name="inputformat" type="text" id="inputformat"/></td>
+      <td><label for="docformat">input format</label></td>
+      <td>
+	<select name="docformat">
+	  <option selected>freetext</option>
+	  {% for df in dflist %}
+	  <option>{{ df }}</option>
+	  {% endfor %}
+	</select>
+      </td>
     </tr>
     <tr>
       <td><label for="rformat">result format</label></td>
-      <td><input name="resultformat" type="text" id="rformat"/></td>
+      <td>
+	<select name="resultformat">
+	  <option>html</option>
+	  {% for rf in rflist %}
+	  <option>{{ rf }}</option>
+	  {% endfor %}
+	</select>
+      </td>
     </tr>
     <tr>
       <td><label for="srcstring">sources</label></td>
       <td><input name="sourcesString" type="text" id="srcstring"/></td>
+      <td>
+	{% for src in sourcelist %}
+	<input type=checkbox name="sourcesString" value="{{ }}">
+	{% endof %}
+</td>
     </tr>
     <tr>
       <td><label for="ststring">semantic types</label></td>
