@@ -24,17 +24,26 @@
       </td>
     </tr>
     <tr>
-      <td><label for="srcstring">sources</label></td>
-      <td><input name="sourcesString" type="text" id="srcstring"/></td>
-      <td>
+      <td><label for="srcstring">sources</label></td> 
+      <td><input name="sourcesString" type="text" id="srcstring" size=60/>
+	(vocabulary sources, separated by commas.)</td>
+      <!-- td>
 	{% for src in sourcelist %}
-	<input type=checkbox name="sourcesString" value="{{ }}">
-	{% endof %}
-</td>
+	<input type=checkbox name="sourcesString" value="{{ src }}">{{ src }}
+	{% endfor %}
+      </td -->
     </tr>
     <tr>
       <td><label for="ststring">semantic types</label></td>
-      <td><input name="semanticTypeString" type="text" id="ststring"/></td>
+      <!-- td><input name="semanticTypeString" type="text" id="ststring"/></td -->
+      <td>
+	{% for semtype in semtypelist %}
+	<input type="checkbox" name="semanticTypeString" value="{{ semtype.abbrev }}">{{ semtype.abbrev }}
+	{% if loop.index is divisibleby 12 %}
+	<br/>
+	{% endif %}
+	{% endfor %}
+      </td>
     </tr>
   </table>
   <input type="submit" value="submit" />
