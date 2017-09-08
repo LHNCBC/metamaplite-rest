@@ -238,21 +238,15 @@ public class MetaMapLiteService
     if (docFormat != null) {
       documentFormat = docFormat;
     }
-    BioCDocumentLoader docLoader = new FreeText();
+    BioCDocumentLoader docLoader;
     if (BioCDocumentLoaderRegistry.contains(documentFormat)) {
-	docLoader = BioCDocumentLoaderRegistry.get(documentFormat);
-	List<BioCDocument> documentList = docLoader.readAsBioCDocumentList(new StringReader(inputText));
-	// logger.info("documentList=" + documentList);
-	// logger.info("MetaMapLiteService: metaMapLiteInst = " + metaMapLiteInst);
-	
-	List<Entity> entityList = metaMapLiteInst.processDocumentList(documentList);
-	// logger.info("entityList.size() = " + entityList.size());
-	// for (Entity entity: entityList) {
-	// 	logger.info(entity.toString());
-	// }
-	return entityList;
+      docLoader = BioCDocumentLoaderRegistry.get(documentFormat);
+    } else {
+      docLoader = new FreeText();
     }
-    return new ArrayList<Entity>(); // return empty list
+    List<BioCDocument> documentList = docLoader.readAsBioCDocumentList(new StringReader(inputText));
+    List<Entity> entityList = metaMapLiteInst.processDocumentList(documentList);
+    return entityList;
   }
 
   /**
