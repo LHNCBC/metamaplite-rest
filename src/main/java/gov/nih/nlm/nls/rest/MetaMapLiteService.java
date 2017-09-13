@@ -127,9 +127,11 @@ public class MetaMapLiteService
       (UMLSSemanticTypes)this.context.getAttribute("semtypeinst");
     Map<String, Object> jcontext = new HashMap();
     String rootPath = this.context.getRealPath("/");
-    String contextPath = hsr.getServletPath();
+    String servletPath = hsr.getServletPath();
+    String contextPath = hsr.getContextPath();
+    String pathInfo = hsr.getPathInfo();
     String formTemplate = loadTemplate(rootPath + "/templates/form.html");
-    jcontext.put("action", contextPath + "/annotate");
+    jcontext.put("action", contextPath + servletPath + "/annotate");
     jcontext.put("dflist", BioCDocumentLoaderRegistry.listNameSet());
     jcontext.put("rflist", ResultFormatterRegistry.listNameSet());
     // jcontext.put("sourcelist", UMLSSources.getSourceList());
@@ -140,6 +142,39 @@ public class MetaMapLiteService
     fcontext.put("title", "Interactive MetaMapLite");
     String template = loadTemplate(rootPath + "/templates/frontpage.html");
     return this.jinjava.render(template, fcontext);
+  }
+
+  @GET @Path("/context")
+  public String processContext(@Context HttpServletRequest hsr) {
+    String rootPath = this.context.getRealPath("/");
+    String template = loadTemplate(rootPath + "/templates/context.html");
+      // jcontext.put("contextlist", this.context.;
+    List<String> descriptionList = new ArrayList<String>();
+    descriptionList.add("hsr.getContextPath() -> " + hsr.getContextPath());
+    descriptionList.add("hsr.getPathInfo() -> " + hsr.getPathInfo());
+    descriptionList.add("hsr.getServletPath() -> " + hsr.getServletPath());
+    // don't display this on deployed versions of the app
+    // descriptionList.add("this.context.getRealPath(\"/\") -> " + this.context.getRealPath("/"));
+    for (String entry: descriptionList) {
+      System.out.println(entry);
+    }
+
+    List<String> headerlist = new ArrayList<String>();
+    for (Enumeration e = hsr.getHeaderNames(); e.hasMoreElements();) {
+      String key = (String)e.nextElement();
+      headerlist.add(key + " -> " + hsr.getHeader(key));
+    }
+
+    Map<String, Object> jcontext = new HashMap();
+    jcontext.put("title", "Context Information");
+    jcontext.put("headerlist", headerlist);
+    jcontext.put("descriptionlist", descriptionList);
+    return this.jinjava.render(template, jcontext);
+  }
+  
+  @GET @Path("/ctxt")
+  public String processCtxt() {
+    return "context";
   }
 
   @GET @Path("/options")
@@ -292,8 +327,9 @@ public class MetaMapLiteService
 	    evSet.add(ev);
 	  }
 	}
-	 Ev[] evArray = evSet.toArray(new Ev[0]);
-	 Arrays.sort(evArray, evComparator);
+	Ev[] evArray = evSet.toArray(new Ev[0]);
+	Arrays.sort(evArray, evComparator);
+	jcontext.put("title", "Results");
 	jcontext.put("evlist", evArray);
 	jcontext.put("sourceslist", Arrays.toString(sourcesStringList.toArray()));
 	jcontext.put("semtypelist", Arrays.toString(semanticTypesStringList.toArray()));
@@ -310,6 +346,7 @@ public class MetaMapLiteService
       	  formatter.initProperties(properties);
 	  String template = loadTemplate(rootPath + "/templates/result_preformatted.html");
 	  Map<String, Object> jcontext = new HashMap();
+	  jcontext.put("title", "Results");
 	  jcontext.put("inputtext", inputText);
 	  jcontext.put("entitylistsize", Integer.toString(entityList.size()));
 	  jcontext.put("result", formatter.entityListFormatToString(entityList));
@@ -536,4 +573,7 @@ public class MetaMapLiteService
   {
     return "annotate tbi-edn";
   }
+
+
+  
 }
