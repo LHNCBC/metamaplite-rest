@@ -138,6 +138,9 @@ public class MetaMapLiteService
     jcontext.put("semtypelist", umlsSemanticTypes.getSemanticTypeList());
     String form = this.jinjava.render(formTemplate, jcontext);
     Map<String, Object> fcontext = new HashMap();
+    fcontext.put("contextpath", contextPath );
+    fcontext.put("servletpath", servletPath);
+    fcontext.put("urlpath", contextPath + servletPath);
     fcontext.put("form", form);
     fcontext.put("title", "Interactive MetaMapLite");
     String template = loadTemplate(rootPath + "/templates/frontpage.html");

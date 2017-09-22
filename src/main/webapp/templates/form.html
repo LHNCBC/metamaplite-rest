@@ -1,13 +1,14 @@
-<form action="{{ action }}" method="post">
-  <textarea name="inputtext" rows="40" cols="150"></textarea>
-  <table>
+<form action="{{ action }}" method="post" class="iForm" id="iForm">
+  <textarea id="inputtext" name="inputtext" rows="40" cols="150"></textarea>
+  <br/>
+  <input type="button" onclick="clearInputTextArea()" value="clear text input area"/>
+  <table> 
     <tr>
       <td><label for="docformat">input format</label></td>
       <td>
 	<select name="docformat">
 	  <option selected>freetext</option>
-	  {% for df in dflist %}
-	  <option>{{ df }}</option>
+	  {% for df in dflist %}<option>{{ df }}</option>
 	  {% endfor %}
 	</select>
       </td>
@@ -17,8 +18,7 @@
       <td>
 	<select name="resultformat">
 	  <option>html</option>
-	  {% for rf in rflist %}
-	  <option>{{ rf }}</option>
+	  {% for rf in rflist %}<option>{{ rf }}</option>
 	  {% endfor %}
 	</select>
       </td>
@@ -38,12 +38,22 @@
       <!-- td><input name="semanticTypeString" type="text" id="ststring"/></td -->
       <td>
 	{% for semtype in semtypelist %}
-	<input type="checkbox" name="semanticTypeString" value="{{ semtype.abbrev }}">{{ semtype.abbrev }}
-	{% if loop.index is divisibleby 12 %}
-	<br/>
+	<input type="checkbox"
+	       name="semanticTypeString"
+	       value="{{ semtype.abbrev }}"
+	       alt="{{ semtype.name }}"/>
+	<div class="tooltip">{{ semtype.abbrev }}
+	  <span class="tooltiptext">{{ semtype.name }}</span>
+	</div>
+	{% if loop.index is divisibleby 12 %}<br/>
 	{% endif %}
 	{% endfor %}
       </td>
+    <tr>
+       <td><label>semantic group</label></td>
+       <td><input type="button" onclick="selectDisorders()"/ value="disorders">
+       <input type="button" onclick="clearSemanticTypes()" value="clear all"/></td>
+    </tr>
     </tr>
   </table>
   <input type="submit" value="submit" />
