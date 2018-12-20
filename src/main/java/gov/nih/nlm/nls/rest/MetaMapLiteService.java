@@ -30,11 +30,17 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Cookie;
 
 import javax.servlet.ServletContext;
 // import javax.servlet.ServletContextEvent;
 // import javax.servlet.ServletContextListener;
 import javax.servlet.http.HttpServletRequest;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -96,6 +102,11 @@ public class MetaMapLiteService
     this.context.setAttribute("semtypeinst", umlsSemanticTypes);
   }
 
+  /**
+   * Load Jinja HTML template file
+   * @param filename template filename
+   * @return return template as string
+   */
   String loadTemplate(String filename) {
     StringBuilder sb = new StringBuilder();
     try {
@@ -207,7 +218,16 @@ public class MetaMapLiteService
   @GET @Path("/requestcontenttypes")
   public String getRequestContentTypeList()
   {
-    return "list supported request content types (TBD)";
+    JSONObject jo = new JSONObject();
+    JSONArray requestContextTypeList = new JSONArray();
+    JSONArray responseContextTypeList = new JSONArray();
+    requestContextTypeList.put("application/json");
+    requestContextTypeList.put("application/x-www-form-urlencoded");
+    responseContextTypeList.put("application/json");
+    responseContextTypeList.put("text/plain");
+    jo.put("request-context-type-list", requestContextTypeList);
+    jo.put("response-context-type-list", responseContextTypeList);
+    return jo.toString();
   }
 
   @GET @Path("/responsecontenttypes")
@@ -217,10 +237,84 @@ public class MetaMapLiteService
   }
 
   @GET @Path("/annotate")
-  public String processAnnotateGet()
+  public String processAnnotateGet(@Context HttpServletRequest hsr)
   {
-    return "Error: this server only accepts POST requests for /annotate.";
+    // return "Error: this server only accepts POST requests for /annotate.";
+    String queryString = hsr.getQueryString();
+    Map<String,String> params = new HashMap<String,String>();
+    for (String paramStr: queryString.split("&")) {
+      String[] kv = paramStr.split("=");
+      if (kv.length == 2) {
+	params.put(kv[0], kv[1]);
+      }
+    }
+    List<String> sourceList = new ArrayList();
+    List<String> semanticTypeList = new ArrayList();
+    String docFormat = "freetext";
+    String resultFormat = "mmi";
+    if (params.containsKey("inputtext")) {
+      String inputtext = params.get("inputtext").replace("+", " ");
+      if (params.containsKey("sourcesString")) {
+	sourceList = Arrays.asList(params.get("sourcesString").split(","));
+      }
+      if (params.containsKey("semanticTypeString")) {
+	semanticTypeList = Arrays.asList(params.get("semanticTypeString").split(","));
+      }
+      if (params.containsKey("docFormat")) {
+	docFormat = params.get("docFormat");
+      }
+      if (params.containsKey("resultFormat")) {
+	resultFormat = params.get("resultFormat");
+      }
+      return processAnnotatePlain(inputtext,
+				  docFormat,
+				  resultFormat,
+				  sourceList,
+				  semanticTypeList); 
+    }
+    return "inputtext param is missing.";
   }
+
+  @GET @Path("/lookup")
+  public String processLookupGet(@Context HttpServletRequest hsr)
+  {
+    // return "Error: this server only accepts POST requests for /lookup.";
+    String queryString = hsr.getQueryString();
+    Map<String,String> params = new HashMap<String,String>();
+    for (String paramStr: queryString.split("&")) {
+      String[] kv = paramStr.split("=");
+      if (kv.length == 2) {
+	params.put(kv[0], kv[1]);
+      }
+    }
+    List<String> sourceList = new ArrayList();
+    List<String> semanticTypeList = new ArrayList();
+    String docFormat = "freetext";
+    String resultFormat = "mmi";
+    if (params.containsKey("inputtext")) {
+      String inputtext = params.get("inputtext").replace("+", " ");
+      if (params.containsKey("sourcesString")) {
+	sourceList = Arrays.asList(params.get("sourcesString").split(","));
+      }
+      if (params.containsKey("semanticTypeString")) {
+	semanticTypeList = Arrays.asList(params.get("semanticTypeString").split(","));
+      }
+      if (params.containsKey("docFormat")) {
+	docFormat = params.get("docFormat");
+      }
+      if (params.containsKey("resultFormat")) {
+	resultFormat = params.get("resultFormat");
+      }
+      return processAnnotatePlain(inputtext,
+				  docFormat,
+				  resultFormat,
+				  sourceList,
+				  semanticTypeList); 
+    }
+    return "inputtext param is missing.";
+  }
+  
+  
 
   /**
    * annotate inputtext return result as text/html
@@ -245,7 +339,8 @@ public class MetaMapLiteService
       if (sourcesStringList.size() == 0) {
 	sourceList = new String[1];
 	sourceList[0] = "all";
-	sourcesStringList.remove(0);
+	if (sourcesStringList.size() > 0)
+	  sourcesStringList.remove(0);
 	sourcesStringList.add("all");
       } else if (sourcesStringList.size() == 1) {
 	String el = sourcesStringList.get(0);
@@ -376,7 +471,12 @@ public class MetaMapLiteService
   public String processAnnotateJson(String inputText, String docFormat, String resultFormat,
 				    List<String> sourcesString, List<String> semanticTypesString)
   {
+    System.err.println("processAnnotateJson(" + inputText + " ... )");
+    // use servlet context to set various variables
+    String rootPath = this.context.getRealPath("/");
+    Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
     try {
+      System.err.println("processAnnotateJson( " + inputText + " ... )");
       List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
       StringBuilder sb = new StringBuilder();
@@ -391,7 +491,7 @@ public class MetaMapLiteService
       } else {
 	sb.append("Result Format ").append(resultFormat).append(" is not available.\n");
       }
-      return sb.toString();
+      return new JSONObject().put("result", sb.toString()).toString();
     } catch (Exception e) {
       logger.error("Internal server exception: ", e);
       return "Internal server error, contact administrator.";
@@ -401,6 +501,9 @@ public class MetaMapLiteService
   public String processAnnotateXml(String inputText, String docFormat, String resultFormat,
 				   List<String> sourcesString, List<String> semanticTypesString)
   {
+    // use servlet context to set various variables
+    String rootPath = this.context.getRealPath("/");
+    Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
     try {
       List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
@@ -423,10 +526,24 @@ public class MetaMapLiteService
     }
   }
 
+  /**
+   * Process and return result without any extraneous formatting text.
+   * @param inputText input text
+   * @param docFormat document format
+   * @param resultFormat output result format
+   * @param sourcesString string containing list of sources to restrict to.
+   * @param semanticTypesString string containing list of semantic types to restrict to.
+   */
   public String processAnnotatePlain(String inputText, String docFormat, String resultFormat,
 				     List<String> sourcesString, List<String> semanticTypesString)
   {
+    // use servlet context to set various variables
+    String rootPath = this.context.getRealPath("/");
+    Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
     try {
+      if (inputText == null) {
+	return "Error: Required field inputtext not supplied.";
+      }
       List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
       StringBuilder sb = new StringBuilder();
@@ -448,35 +565,22 @@ public class MetaMapLiteService
     }
   }
 
-
   @POST @Path("/annotate")
-  @Consumes(MediaType.MULTIPART_FORM_DATA)
-  public String processAnnotateFormInput
+  @Consumes({MediaType.APPLICATION_FORM_URLENCODED,
+	MediaType.MULTIPART_FORM_DATA})
+  @Produces(MediaType.TEXT_HTML)
+  public String processAnnotateFormToHTML
     (@FormParam("inputtext") String inputText,
      @DefaultValue("freetext") @FormParam("docformat") String docFormat,
      @DefaultValue("html") @FormParam("resultformat") String resultFormat,
      @DefaultValue("all") @FormParam("sourcesString") List<String> sourcesString,
      @DefaultValue("all") @FormParam("semanticTypeString") List<String> semanticTypesString)
   {
-
-    logger.info("multipart form data: request.inputext:  " + inputText);
-    return processAnnotateHtml(inputText,
-			       docFormat,
-			       resultFormat,
-			       sourcesString,
-			       semanticTypesString);
-  }
-
-
-  @POST @Path("/annotate")
-  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-  public String processAnnotateUrlEncodedFormInput
-    (@FormParam("inputtext") String inputText,
-     @DefaultValue("freetext") @FormParam("docformat") String docFormat,
-     @DefaultValue("html") @FormParam("resultformat") String resultFormat,
-     @DefaultValue("all") @FormParam("sourcesString") List<String> sourcesString,
-     @DefaultValue("all") @FormParam("semanticTypeString") List<String> semanticTypesString)
-  {
+    logger.info("docformat: " + docFormat);
+    logger.info("resultformat: " + resultFormat);
+    logger.info("sourcesString: " + sourcesString);
+    logger.info("semanticTypesString: " + semanticTypesString);
+    logger.info("semanticTypesString.size: " + semanticTypesString.size());
     logger.info("www form urlencoded: request.inputext:  " + inputText);
     return processAnnotateHtml(inputText,
 			       docFormat,
@@ -485,48 +589,158 @@ public class MetaMapLiteService
 			       semanticTypesString);
   }
 
-
-  //  @DefaultValue("brat") @FormParam("outputformat") String outputFormat,
-  @POST @Path("/annotate/json")
-  @Consumes(MediaType.APPLICATION_JSON)
-  @Produces(MediaType.APPLICATION_JSON)
-  public String processAnnotateJsonInput(MMRequest request)
-  {
-    logger.info("JSON: request.inputext:  " + request.getInputtext());
-    List<String> semtypeList = new ArrayList<String>();
-    semtypeList.add("all");
-    List<String> sourceList = new ArrayList<String>();
-    sourceList.add("all");
-    return processAnnotateJson(request.getInputtext(),
-			       "freetext" /*docformat*/,
-			       "brat" /*resultFormat*/,
-			       sourceList /*sourcesStringList*/,
-			       semtypeList /*semanticTypesStringList*/);
-    
-  }
-
-  //  @DefaultValue("brat") @FormParam("outputformat") String outputFormat,
-  @POST @Path("/annotate/text")
-  @Consumes(MediaType.APPLICATION_JSON)
+  @POST @Path("/annotate")
+  @Consumes({MediaType.APPLICATION_FORM_URLENCODED,
+	MediaType.MULTIPART_FORM_DATA})
   @Produces(MediaType.TEXT_PLAIN)
-  public String processAnnotateJsonInputToText(MMRequest request)
+  public String processAnnotateFormToPlain
+    (@FormParam("inputtext") String inputText,
+     @DefaultValue("freetext") @FormParam("docformat") String docFormat,
+     @DefaultValue("html") @FormParam("resultformat") String resultFormat,
+     @DefaultValue("all") @FormParam("sourcesString") List<String> sourcesString,
+     @DefaultValue("all") @FormParam("semanticTypeString") List<String> semanticTypesString)
   {
-    logger.info("JSON: request.inputext:  " + request.getInputtext());
-    List<String> semtypeList = new ArrayList<String>();
-    semtypeList.add("all");
-    List<String> sourceList = new ArrayList<String>();
-    sourceList.add("all");
-    return processAnnotateJson(request.getInputtext(),
-			       "freetext" /*docformat*/,
-			       "brat" /*resultFormat*/,
-			       sourceList /*sourcesStringList*/,
-			       semtypeList /*semanticTypesStringList*/);
-    
+    logger.info("docformat: " + docFormat);
+    logger.info("resultformat: " + resultFormat);
+    logger.info("sourcesString: " + sourcesString);
+    logger.info("semanticTypesString: " + semanticTypesString);
+    logger.info("semanticTypesString.size: " + semanticTypesString.size());
+    logger.info("www form urlencoded: request.inputext:  " + inputText);
+    return processAnnotatePlain(inputText,
+			       docFormat,
+			       resultFormat,
+			       sourcesString,
+			       semanticTypesString);
   }
-
   
   @POST @Path("/annotate")
-  @Consumes(MediaType.TEXT_XML)
+  @Consumes({MediaType.APPLICATION_FORM_URLENCODED,
+	MediaType.MULTIPART_FORM_DATA})
+  @Produces(MediaType.APPLICATION_JSON)
+  public String processAnnotateFormToJson
+    (@FormParam("inputtext") String inputText,
+     @DefaultValue("freetext") @FormParam("docformat") String docFormat,
+     @DefaultValue("html") @FormParam("resultformat") String resultFormat,
+     @DefaultValue("all") @FormParam("sourcesString") List<String> sourcesString,
+     @DefaultValue("all") @FormParam("semanticTypeString") List<String> semanticTypesString)
+  {
+    logger.info("docformat: " + docFormat);
+    logger.info("resultformat: " + resultFormat);
+    logger.info("sourcesString: " + sourcesString);
+    logger.info("semanticTypesString: " + semanticTypesString);
+    logger.info("semanticTypesString.size: " + semanticTypesString.size());
+    logger.info("www form urlencoded: request.inputext:  " + inputText);
+    return processAnnotateJson(inputText,
+			       docFormat,
+			       resultFormat,
+			       sourcesString,
+			       semanticTypesString);
+  }
+  
+  @POST @Path("/annotate")
+  @Consumes({MediaType.TEXT_XML, "text/plain", "application/edn", "application/x-yaml"})
+  public String processAnnotate(@Context HttpHeaders hh,
+				String message)
+  {
+    MultivaluedMap<String, String> headerParams = hh.getRequestHeaders();
+    Map<String, Cookie> pathParams = hh.getCookies();
+    StringBuilder sb = new StringBuilder();
+    // consider using jinjava template instead. See method frontPage.
+    sb.append("<html>\n");
+    sb.append("<h1>Headers</h1>\n");
+    sb.append("<pre>\n");
+    for (Map.Entry<String,List<String>> hp: headerParams.entrySet()){
+      for (String value: hp.getValue()) {
+	sb.append(hp.getKey()).append(" -> ").append(value).append("\n");
+      }
+    }
+    sb.append("</pre>\n");
+    sb.append("<h1>Message</h2>\n<pre>\n").append(message).append("\n</pre>\n");
+    sb.append("</html>");
+    return sb.toString();
+
+    
+    // logger.info("docformat: " + docFormat);
+    // logger.info("resultformat: " + resultFormat);
+    // logger.info("sourcesString: " + sourcesString);
+    // logger.info("semanticTypesString: " + semanticTypesString);
+    // logger.info("semanticTypesString.size: " + semanticTypesString.size());
+    // logger.info("www form urlencoded: request.inputext:  " + inputText);
+    // return processAnnotateHtml(inputText,
+    // 			       docFormat,
+    // 			       resultFormat,
+    // 			       sourcesString,
+    // 			       semanticTypesString);
+  }
+
+  List<String> getList(JSONObject jObj, String key) {
+    if (jObj.has(key)) {
+      Object entryObj = jObj.get(key);
+      if (entryObj instanceof String) {
+	return Arrays.asList(((String)entryObj).split(","));
+      } else if (entryObj instanceof JSONArray) {
+	List<String> elmList = new ArrayList<String>();
+	for (Object obj: (JSONArray)entryObj) {
+	  if (obj instanceof String) {
+	    elmList.add((String)obj);
+	  }
+	}
+	return elmList;
+      } 
+    } 
+    return new ArrayList<String>();
+  }
+
+  //  @DefaultValue("brat") @FormParam("outputformat") String outputFormat,
+  @POST @Path("/annotate")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.TEXT_PLAIN)
+  public String processAnnotateJsonInput(String message)
+  {
+    JSONObject jObj = new JSONObject(message);
+    String inputText;
+    if (jObj.has("inputtext")) {
+      inputText = jObj.getString("inputtext");
+      logger.info("JSON: request.inputext:  " + inputText);
+    } else {
+      return "inputtext field missing!";
+    }
+    String docformat = jObj.has("docformat") ? jObj.getString("docformat") : "freetext";
+    String resultformat = jObj.has("resultformat") ? jObj.getString("resultformat") : "mmi";
+    List<String> sourceList = getList(jObj, "sourcesString");
+    List<String> semtypeList = getList(jObj, "semanticTypeString");
+    return processAnnotatePlain(inputText,
+			       docformat,
+			       resultformat,
+			       sourceList,
+			       semtypeList);
+  }
+
+    //  @DefaultValue("brat") @FormParam("outputformat") String outputFormat,
+  @POST @Path("/annotate")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public String processAnnotateJsonInputToJson(String message)
+  {
+    JSONObject jObj = new JSONObject(message);
+    String inputText;
+    if (jObj.has("inputtext")) {
+      inputText = jObj.getString("inputtext");
+      logger.info("JSON: request.inputext:  " + inputText);
+    } else {
+      return "inputtext field missing!";
+    }
+    String docformat = jObj.has("docformat") ? jObj.getString("docformat") : "freetext";
+    String resultformat = jObj.has("resultformat") ? jObj.getString("resultformat") : "mmi";
+    List<String> sourceList = getList(jObj, "sourcesString");
+    List<String> semtypeList = getList(jObj, "semanticTypeString");
+    return processAnnotateJson(inputText,
+			       docformat,
+			       resultformat,
+			       sourceList,
+			       semtypeList);
+  }
+
   public String processAnnotateXMLInput(MMRequest request)
   {
     logger.info("XML: request.inputext:  " + request.getInputtext());
@@ -534,9 +748,9 @@ public class MetaMapLiteService
     semtypeList.add("all");
     List<String> sourceList = new ArrayList<String>();
     sourceList.add("all");
-    return processAnnotateJson(request.getInputtext(),
+    return processAnnotateXml(request.getInputtext(),
 			       "freetext" /*docformat*/,
-			       "brat" /*resultFormat*/,
+			       "mmi" /*resultFormat*/,
 			       sourceList /*sourcesStringList*/,
 			       semtypeList /*semanticTypesStringList*/);
     
@@ -546,37 +760,80 @@ public class MetaMapLiteService
   
   //  @DefaultValue("brat") @FormParam("outputformat") String outputFormat,
   @POST @Path("/annotate/text")
+  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+  @Produces(MediaType.TEXT_PLAIN)
+  public String processAnnotateURLEncodedToText(@FormParam("inputtext") String inputText,
+     @DefaultValue("freetext") @FormParam("docformat") String docFormat,
+     @DefaultValue("mmi") @FormParam("resultformat") String resultFormat,
+     @DefaultValue("all") @FormParam("sourcesString") List<String> sourcesString,
+     @DefaultValue("all") @FormParam("semanticTypeString") List<String> semanticTypesString)
+  {
+    logger.info("docformat: " + docFormat);
+    logger.info("resultformat: " + resultFormat);
+    logger.info("sourcesString: " + sourcesString);
+    logger.info("semanticTypesString: " + semanticTypesString);
+    logger.info("semanticTypesString.size: " + semanticTypesString.size());
+    logger.info("urlencoded: inputText: " + inputText);
+
+    // List<String> sourcesStringList = new ArrayList<String>();
+    // List<String> semanticTypesStringList = new ArrayList<String>();
+    // for 
+    
+    String resultString = processAnnotatePlain(inputText,
+					       docFormat,
+					       resultFormat,
+					       sourcesString,
+					       semanticTypesString);
+    
+    logger.info("resultString: " + resultString);
+    return resultString;
+  }
+
+  //  @DefaultValue("brat") @FormParam("outputformat") String outputFormat,
+  
+  @POST @Path("/annotate/text")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.TEXT_PLAIN)
+  public String processAnnotateJsonInputToText(String message)
+  {
+    JSONObject jObj = new JSONObject(message);
+    String inputText;
+    if (jObj.has("inputtext")) {
+      inputText = jObj.getString("inputtext");
+      logger.info("JSON: request.inputext:  " + inputText);
+    } else {
+      return "inputtext field missing!";
+    }
+    String docformat = jObj.has("docformat") ? jObj.getString("docformat") : "freetext";
+    String resultformat = jObj.has("resultformat") ? jObj.getString("resultformat") : "mmi";
+    List<String> sourceList = getList(jObj, "sourcesString");
+    List<String> semtypeList = getList(jObj, "semanticTypeString");
+    System.err.println("JSON: inputtext:  " + inputText);
+    logger.info("JSON: inputtext:  " + inputText);
+    return processAnnotatePlain(inputText,
+				docformat,
+				resultformat,
+				sourceList,
+				semtypeList);
+  }
+
+  
+  //  @DefaultValue("brat") @FormParam("outputformat") String outputFormat,
+  @POST @Path("/annotate/text")
   @Consumes(MediaType.TEXT_PLAIN)
-  public String processAnnotatePlainInput(MMRequest request)
+  @Produces(MediaType.TEXT_PLAIN)
+  public String processAnnotatePlainInputToText(MMRequest request)
   {
     logger.info("Text/Plain: request.inputext:  " + request.getInputtext());
     List<String> semtypeList = new ArrayList<String>();
     semtypeList.add("all");
     List<String> sourceList = new ArrayList<String>();
     sourceList.add("all");
-    return processAnnotateJson(request.getInputtext(),
+    return processAnnotatePlain(request.getInputtext(),
 			       "freetext" /*docformat*/,
-			       "brat" /*resultFormat*/,
+			       "mmi" /*resultFormat*/,
 			       sourceList /*sourcesStringList*/,
 			       semtypeList /*semanticTypesStringList*/);
   }
-
-
-
-  @POST @Path("/annotate")
-  @Consumes("application/edn")
-  public String processAnnotateEdnInput()
-  {
-    return "annotate tbi-edn";
-  }
-
-  @POST @Path("/annotate")
-  @Consumes("application/x-yaml")
-  public String processAnnotateYamlInput()
-  {
-    return "annotate tbi-edn";
-  }
-
-
   
 }
