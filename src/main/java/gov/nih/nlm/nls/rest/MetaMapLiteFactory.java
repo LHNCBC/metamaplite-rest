@@ -93,6 +93,10 @@ public class MetaMapLiteFactory {
 			     dataPath + "/" +
 			     properties.getProperty("opennlp.en-sent.bin.path",
 						    "models/en-sent.bin"));
+      properties.setProperty("opennlp.en-chunker.bin.path",
+			     dataPath + "/" +
+			     properties.getProperty("opennlp.en-chunker.bin.path",
+						    "models/en-chunker.bin"));
       return properties;
     } catch (FileNotFoundException fnfe) {
       throw new RuntimeException(fnfe);
@@ -133,7 +137,7 @@ public class MetaMapLiteFactory {
 
       metaMapLiteInst = new MetaMapLite(properties);
 
-      // System.out.println("MetaMapLiteFactory: metaMapLiteInst = " + metaMapLiteInst);
+      // logger.info("MetaMapLiteFactory: metaMapLiteInst = " + metaMapLiteInst);
 
       return metaMapLiteInst;
     } catch (IllegalAccessException iae) {
