@@ -1,10 +1,11 @@
-<form action="{{ action }}" method="post" class="iForm" id="iForm">
-  <textarea id="inputtext" name="inputtext" rows="40" cols="150"></textarea>
+<form action="{{ action }}" method="post" class="iForm" id="iForm" enctype="multipart/form-data;charset=UTF-8" >
+  <textarea id="inputtext" name="inputtext" rows="20" cols="150"></textarea>
   <br/>
-  <input type="button" onclick="clearInputTextArea()" value="clear text input area"/>
+  <input type="submit" value="submit" />
+  <input type="button" onclick="clearInputTextArea()" value="Clear text input area"/>
   <table> 
     <tr>
-      <td><label for="docformat">input format</label></td>
+      <td><label for="docformat">Input format</label></td>
       <td>
 	<select name="docformat">
 	  <option selected>freetext</option>
@@ -14,7 +15,7 @@
       </td>
     </tr>
     <tr>
-      <td><label for="rformat">result format</label></td>
+      <td><label for="rformat">Result format</label></td>
       <td>
 	<select name="resultformat">
 	  <option>html</option>
@@ -24,7 +25,7 @@
       </td>
     </tr>
     <tr>
-      <td><label for="srcstring">sources</label></td> 
+      <td><label for="srcstring">Sources</label></td> 
       <td><input name="sourcesString" type="text" id="srcstring" size=60/>
 	(vocabulary sources, separated by commas.)</td>
       <!-- td>
@@ -34,7 +35,7 @@
       </td -->
     </tr>
     <tr>
-      <td><label for="ststring">semantic types</label></td>
+      <td><label for="ststring">Semantic Types</label></td>
       <!-- td><input name="semanticTypeString" type="text" id="ststring"/></td -->
       <td>
 	{% for semtype in semtypelist %}
@@ -50,9 +51,37 @@
 	{% endfor %}
       </td>
     <tr>
-       <td><label>semantic group</label></td>
-       <td><input type="button" onclick="selectDisorders()"/ value="disorders">
-       <input type="button" onclick="clearSemanticTypes()" value="clear all"/></td>
+       <td><label>Semantic Groups</label></td>
+       <td><input type="button" onclick="selectDisorders()"/ value="Disorders"/>
+       <input type="button" onclick="selectDisordersAbbrev()"/ value="Abbreviated Disorders"/>
+       <input type="button" onclick="selectActivities()"/ value="Activities"/>
+       <input type="button" onclick="selectAnatomy()"/ value="Anatomy"/></td>
+    </tr>
+    <tr><td></td>
+      <td><input type="button" onclick="selectChemicalsAndDrugs()"/ value="Chemicals and Drugs"/>
+       <input type="button" onclick="selectConceptsAndIdeas()"/ value="Concepts and Ideas"/>
+       <input type="button" onclick="selectGenesAndMolecularSequences()"/ value="Genes and Molecular Sequences"/>
+      </td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>
+      <input type="button" onclick="selectGeographicAreas()"/ value="Geographic Areas"/>
+      <input type="button" onclick="selectLivingBeings()"/ value="Living Beings"/>
+      <input type="button" onclick="selectObjects()"/ value="Objects"/>
+      <input type="button" onclick="selectOccupations()"/ value="Occupations"/>
+      </td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>
+      <input type="button" onclick="selectOrganizations()"/ value="Organizations"/>
+      <input type="button" onclick="selectPhenomena()"/ value="Phenomena"/>
+      <input type="button" onclick="selectPhysiology()"/ value="Physiology"/>
+      <input type="button" onclick="selectProcedures()"/ value="Procedures"/></td>
+    </tr>
+    <tr><td></td>
+      <td><input type="button" onclick="clearSemanticTypes()" value="Clear all semantic types"/></td>
     </tr>
     </tr>
   </table>
