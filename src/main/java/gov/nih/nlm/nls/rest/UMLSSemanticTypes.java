@@ -52,8 +52,10 @@ public class UMLSSemanticTypes {
   List<TypeRecord> semanticTypeList = new ArrayList();
 
   /**
-   * Creates a new <code>UMLSSemanticTypes</code> instance.
-   *
+   * Creates a new <code>UMLSSemanticTypes</code> instance using
+   * user-supplied list of semantic type, each line containing
+   * semantic type abbreviation, id, and full name..
+   * @param filename name of semantic type information file.
    */
   public UMLSSemanticTypes(String filename) {
     loadTable(filename);
