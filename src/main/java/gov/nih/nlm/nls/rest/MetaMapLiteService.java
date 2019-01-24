@@ -162,7 +162,7 @@ public class MetaMapLiteService
   public String processContext(@Context HttpServletRequest hsr) {
     String rootPath = this.context.getRealPath("/");
     String template = loadTemplate(rootPath + "/templates/context.html");
-      // jcontext.put("contextlist", this.context.;
+    // jcontext.put("contextlist", this.context.;
     List<String> descriptionList = new ArrayList<String>();
     descriptionList.add("hsr.getContextPath() -> " + hsr.getContextPath());
     descriptionList.add("hsr.getPathInfo() -> " + hsr.getPathInfo());
@@ -319,11 +319,13 @@ public class MetaMapLiteService
   /**
    * annotate inputtext return result as text/html
    * @param inputText text to be annotated 
+   * @param docFormat parse input text using specified docFormat 
    * @param resultFormat format result using supplied format or html if no format supplied.
    * @param sourcesStringList restrict results to supplied sources or use all sources if empty or "all"
-   * @param semanticTypeStringList restrict results to supplied semantic
+   * @param semanticTypesStringList restrict results to supplied semantic
    * types or use all sources if empty or "all"
    * @return entityList
+   * @throws Exception general exception
    */
   public List<Entity> processText(String inputText,
 				  String docFormat,
@@ -382,12 +384,69 @@ public class MetaMapLiteService
     return entityList;
   }
 
+  public static class EntityStartComparator implements Comparator {
+    // Implementation of java.util.Comparator
+
+    /**
+     * Describe <code>equals</code> method here.
+     *
+     * @param object an <code>Object</code> value
+     * @return a <code>boolean</code> value
+     */
+    public final boolean equals(final Object object) {
+      return this == object;
+    }
+
+    /**
+     * Describe <code>compare</code> method here.
+     *
+     * @param object an <code>Object</code> value
+     * @param object1 an <code>Object</code> value
+     * @return an <code>int</code> value
+     */
+    public final int compare(final Object object, final Object object1) {
+      return Double.compare(((Entity)object).getStart(),((Entity)object1).getStart());
+    }
+
+
+  }
+
+  /**
+   * Add entity highlighting to string.
+   * @param inputText input text string to be highlighted
+   * @param entityList list of entities found in text string 
+   * @param highlightTagName name of HTML tag to use when highlighting.
+   * @return string with entities highlighted by html tag.
+   */
+  public String hightlightInputText(String inputText,
+				    List<Entity> entityList,
+				    String highlightTagName) {
+    StringBuilder sb = new StringBuilder();
+    EntityStartComparator entityStartComparator = new EntityStartComparator();
+    entityList.sort(entityStartComparator);
+    int offset = 0;
+    for (Entity e: entityList) {
+      //System.out.println("offset: " + offset + ", e.getStart(): " + e.getStart() + ", e.getLength(): " + e.getLength());
+      if ((offset > 0) && (offset < e.getStart())) {
+	sb.append(inputText.substring(offset, e.getStart()));
+      }
+      sb.append("<" + highlightTagName + ">");
+      sb.append(inputText.substring(e.getStart(), e.getStart() + e.getLength()));
+      // sb.append("|").append(e.getStart()).append(":").append(e.getStart() + e.getLength()).append("|");
+      sb.append("</" + highlightTagName + ">");
+      offset = e.getStart() + e.getLength();
+    }
+    sb.append(inputText.substring(offset));
+    return sb.toString();
+  }
+
   /**
    * annotate inputtext return result as text/html
    * @param inputText text to be annotated 
+   * @param docFormat parse input text using specified docFormat 
    * @param resultFormat format result using supplied format or html if no format supplied.
-   * @param sourcesString restrict results to supplied sources or use all sources if empty or "all"
-   * @param semanticTypeString restrict results to supplied semantic
+   * @param sourcesStringList restrict results to supplied sources or use all sources if empty or "all"
+   * @param semanticTypesStringList restrict results to supplied semantic
    * types or use all sources if empty or "all"
    * @return response as html
    */
@@ -417,7 +476,7 @@ public class MetaMapLiteService
       if (resultFormat.equals("html")) {
 	String template = loadTemplate(rootPath + "/templates/result_html.html");
 	Map<String, Object> jcontext = new HashMap();
-	jcontext.put("inputtext", inputText);
+	jcontext.put("inputtext", hightlightInputText(inputText, entityList, "em") );
 	jcontext.put("entitylistsize", Integer.toString(entityList.size()));
 	Set<Ev> evSet = new HashSet<Ev>();
 	for (Entity entity: entityList) {
@@ -533,6 +592,7 @@ public class MetaMapLiteService
    * @param resultFormat output result format
    * @param sourcesString string containing list of sources to restrict to.
    * @param semanticTypesString string containing list of semantic types to restrict to.
+   * @return string containing formatted result sans HTML wrapper
    */
   public String processAnnotatePlain(String inputText, String docFormat, String resultFormat,
 				     List<String> sourcesString, List<String> semanticTypesString)
@@ -568,8 +628,8 @@ public class MetaMapLiteService
   @POST @Path("/annotate")
   @Consumes({MediaType.APPLICATION_FORM_URLENCODED,
 	MediaType.MULTIPART_FORM_DATA})
-  @Produces(MediaType.TEXT_HTML)
-  public String processAnnotateFormToHTML
+	@Produces(MediaType.TEXT_HTML)
+	public String processAnnotateFormToHTML
     (@FormParam("inputtext") String inputText,
      @DefaultValue("freetext") @FormParam("docformat") String docFormat,
      @DefaultValue("html") @FormParam("resultformat") String resultFormat,
@@ -592,8 +652,8 @@ public class MetaMapLiteService
   @POST @Path("/annotate")
   @Consumes({MediaType.APPLICATION_FORM_URLENCODED,
 	MediaType.MULTIPART_FORM_DATA})
-  @Produces(MediaType.TEXT_PLAIN)
-  public String processAnnotateFormToPlain
+	@Produces(MediaType.TEXT_PLAIN)
+	public String processAnnotateFormToPlain
     (@FormParam("inputtext") String inputText,
      @DefaultValue("freetext") @FormParam("docformat") String docFormat,
      @DefaultValue("html") @FormParam("resultformat") String resultFormat,
@@ -607,17 +667,17 @@ public class MetaMapLiteService
     logger.info("semanticTypesString.size: " + semanticTypesString.size());
     logger.info("www form urlencoded: request.inputext:  " + inputText);
     return processAnnotatePlain(inputText,
-			       docFormat,
-			       resultFormat,
-			       sourcesString,
-			       semanticTypesString);
+				docFormat,
+				resultFormat,
+				sourcesString,
+				semanticTypesString);
   }
   
   @POST @Path("/annotate")
   @Consumes({MediaType.APPLICATION_FORM_URLENCODED,
 	MediaType.MULTIPART_FORM_DATA})
-  @Produces(MediaType.APPLICATION_JSON)
-  public String processAnnotateFormToJson
+	@Produces(MediaType.APPLICATION_JSON)
+	public String processAnnotateFormToJson
     (@FormParam("inputtext") String inputText,
      @DefaultValue("freetext") @FormParam("docformat") String docFormat,
      @DefaultValue("html") @FormParam("resultformat") String resultFormat,
@@ -710,13 +770,13 @@ public class MetaMapLiteService
     List<String> sourceList = getList(jObj, "sourcesString");
     List<String> semtypeList = getList(jObj, "semanticTypeString");
     return processAnnotatePlain(inputText,
-			       docformat,
-			       resultformat,
-			       sourceList,
-			       semtypeList);
+				docformat,
+				resultformat,
+				sourceList,
+				semtypeList);
   }
 
-    //  @DefaultValue("brat") @FormParam("outputformat") String outputFormat,
+  //  @DefaultValue("brat") @FormParam("outputformat") String outputFormat,
   @POST @Path("/annotate")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
@@ -749,10 +809,10 @@ public class MetaMapLiteService
     List<String> sourceList = new ArrayList<String>();
     sourceList.add("all");
     return processAnnotateXml(request.getInputtext(),
-			       "freetext" /*docformat*/,
-			       "mmi" /*resultFormat*/,
-			       sourceList /*sourcesStringList*/,
-			       semtypeList /*semanticTypesStringList*/);
+			      "freetext" /*docformat*/,
+			      "mmi" /*resultFormat*/,
+			      sourceList /*sourcesStringList*/,
+			      semtypeList /*semanticTypesStringList*/);
     
   }
 
@@ -763,10 +823,10 @@ public class MetaMapLiteService
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   @Produces(MediaType.TEXT_PLAIN)
   public String processAnnotateURLEncodedToText(@FormParam("inputtext") String inputText,
-     @DefaultValue("freetext") @FormParam("docformat") String docFormat,
-     @DefaultValue("mmi") @FormParam("resultformat") String resultFormat,
-     @DefaultValue("all") @FormParam("sourcesString") List<String> sourcesString,
-     @DefaultValue("all") @FormParam("semanticTypeString") List<String> semanticTypesString)
+						@DefaultValue("freetext") @FormParam("docformat") String docFormat,
+						@DefaultValue("mmi") @FormParam("resultformat") String resultFormat,
+						@DefaultValue("all") @FormParam("sourcesString") List<String> sourcesString,
+						@DefaultValue("all") @FormParam("semanticTypeString") List<String> semanticTypesString)
   {
     logger.info("docformat: " + docFormat);
     logger.info("resultformat: " + resultFormat);
@@ -830,10 +890,10 @@ public class MetaMapLiteService
     List<String> sourceList = new ArrayList<String>();
     sourceList.add("all");
     return processAnnotatePlain(request.getInputtext(),
-			       "freetext" /*docformat*/,
-			       "mmi" /*resultFormat*/,
-			       sourceList /*sourcesStringList*/,
-			       semtypeList /*semanticTypesStringList*/);
+				"freetext" /*docformat*/,
+				"mmi" /*resultFormat*/,
+				sourceList /*sourcesStringList*/,
+				semtypeList /*semanticTypesStringList*/);
   }
   
 }
