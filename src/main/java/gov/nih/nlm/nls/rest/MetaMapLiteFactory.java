@@ -47,7 +47,12 @@ public class MetaMapLiteFactory {
       String configPropertyFilename = configPath + "/" +
  	System.getProperty("metamaplite.property.file",
 			   "metamaplite.properties");
+
       Properties properties = new Properties();
+      
+      logger.info("0: metamaplite.index.directory: " +
+		 properties.getProperty("metamaplite.index.directory"));
+
       // default properties that can be overriden
       properties.setProperty("metamaplite.semanticgroup", "all");
       // "cgab,acab,inpo,patf,dsyn,anab,neop,mobd,sosy"
@@ -56,45 +61,58 @@ public class MetaMapLiteFactory {
       // load user properties from file
       properties.load(new FileReader(configPropertyFilename));
 
+      // If user just defined metamaplite.index.directory, then add
+      // missing index properties
+      properties.setProperty("metamaplite.index.directory",
+			     rootPath + "/" +
+			     properties.getProperty("metamaplite.index.directory",
+						    "data/ivf/strict"));
+      MetaMapLite.expandIndexDir(properties);
+      
+      logger.info("1: metamaplite.index.directory: " +
+		 properties.getProperty("metamaplite.index.directory"));
+      logger.info("1: metamaplite.ivf.cuisourceinfo: " +
+			 properties.getProperty("metamaplite.ivf.cuisourceinfo"));
+      
       // Add data path from servlet context for the following
       // properties.  Paths to files, models and indexes must be
       // relative to webapps/<servlet-dir>/data directory.
-      properties.setProperty("metamaplite.ivf.cuiconceptindex",
-			     dataPath + "/" +
-			     properties.getProperty("metamaplite.ivf.cuiconceptindex",
-						    "ivf/strict/indices/cuiconcept"));
-      properties.setProperty("metamaplite.ivf.cuisourceinfoindex",
-			     dataPath + "/" +
-			     properties.getProperty("metamaplite.ivf.cuisourceinfoindex",
-						    "ivf/strict/indices/cuisourceinfo"));
-      properties.setProperty("metamaplite.ivf.cuisemantictypeindex",
-			     dataPath + "/" +
-			     properties.getProperty("metamaplite.ivf.cuisemantictypeindex",
-						    "ivf/strict/indices/cuist"));
+      // properties.setProperty("metamaplite.ivf.cuiconceptindex",
+      // 			     dataPath + "/" +
+      // 			     properties.getProperty("metamaplite.ivf.cuiconceptindex",
+      // 						    "ivf/strict/indices/cuiconcept"));
+      // properties.setProperty("metamaplite.ivf.cuisourceinfoindex",
+      // 			     dataPath + "/" +
+      // 			     properties.getProperty("metamaplite.ivf.cuisourceinfoindex",
+      // 						    "ivf/strict/indices/cuisourceinfo"));
+      // properties.setProperty("metamaplite.ivf.cuisemantictypeindex",
+      // 			     dataPath + "/" +
+      // 			     properties.getProperty("metamaplite.ivf.cuisemantictypeindex",
+      // 						    "ivf/strict/indices/cuist"));
 
-      properties.setProperty("metamaplite.ivf.varsindex",
-			     dataPath + "/" +
-			     properties.getProperty("metamaplite.ivf.varsindex",
-						    "ivf/strict/indices/vars"));
-      properties.setProperty("metamaplite.ivf.meshtcrelaxedindex", 
-			     dataPath + "/" +
-			     properties.getProperty("metamaplite.ivf.meshtcrelaxedindex",
-						    "ivf/strict/indices/meshtcrelaxedindex"));
+      // properties.setProperty("metamaplite.ivf.varsindex",
+      // 			     dataPath + "/" +
+      // 			     properties.getProperty("metamaplite.ivf.varsindex",
+      // 						    "ivf/strict/indices/vars"));
+      // properties.setProperty("metamaplite.ivf.meshtcrelaxedindex", 
+      // 			     dataPath + "/" +
+      // 			     properties.getProperty("metamaplite.ivf.meshtcrelaxedindex",
+      // 						    "ivf/strict/indices/meshtcrelaxedindex"));
       
       properties.setProperty("metamaplite.excluded.termsfile",
-			     dataPath + "/" +
+			     rootPath + "/" +
 			     properties.getProperty("metamaplite.excluded.termsfile",
 						    "specialterms.txt"));
       properties.setProperty("opennlp.en-pos.bin.path",
-			     dataPath + "/" +
+			     rootPath + "/" +
 			     properties.getProperty("opennlp.en-pos.bin.path",
 						    "models/en-pos-maxent.bin"));
       properties.setProperty("opennlp.en-sent.bin.path",
-			     dataPath + "/" +
+			     rootPath + "/" +
 			     properties.getProperty("opennlp.en-sent.bin.path",
 						    "models/en-sent.bin"));
       properties.setProperty("opennlp.en-chunker.bin.path",
-			     dataPath + "/" +
+			     rootPath + "/" +
 			     properties.getProperty("opennlp.en-chunker.bin.path",
 						    "models/en-chunker.bin"));
       return properties;
