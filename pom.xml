@@ -12,6 +12,10 @@
       <url>https://download.java.net/maven/2/</url>
       <layout>default</layout>
     </repository>
+    <repository>
+      <id>metamap maven</id>
+      <url>https://metamap.nlm.nih.gov/maven2/</url>
+    </repository>
   </repositories>
   <properties>
     <jersey2.version>2.25.1</jersey2.version>
