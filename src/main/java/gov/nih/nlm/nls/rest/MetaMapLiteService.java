@@ -77,15 +77,18 @@ public class MetaMapLiteService
   /** Jinja template renderer*/
   Jinjava jinjava = new Jinjava();
 
-
-
   /* Gleaned from 
      http://stackoverflow.com/questions/2999376/whats-the-right-way-of-configuring-the-path-to-a-sqlite-database-for-my-servlet
   */
   public MetaMapLiteService() {
     
   }
-  
+
+  /**
+   * Add MetaMapLite instance and other associated resources to
+   * servlet context.
+   * @param context servlet context 
+   */
   @Context
   public void setServletContext(ServletContext context) {
     logger.info("servlet context set here");
@@ -239,82 +242,86 @@ public class MetaMapLiteService
   @GET @Path("/annotate")
   public String processAnnotateGet(@Context HttpServletRequest hsr)
   {
-    // return "Error: this server only accepts POST requests for /annotate.";
-    String queryString = hsr.getQueryString();
-    Map<String,String> params = new HashMap<String,String>();
-    for (String paramStr: queryString.split("&")) {
-      String[] kv = paramStr.split("=");
-      if (kv.length == 2) {
-	params.put(kv[0], kv[1]);
+    if (hsr == null) {
+      return "Error: this server only accepts POST requests for /annotate.";
+    } else {
+      String queryString = hsr.getQueryString();
+      Map<String,String> params = new HashMap<String,String>();
+      for (String paramStr: queryString.split("&")) {
+	String[] kv = paramStr.split("=");
+	if (kv.length == 2) {
+	  params.put(kv[0], kv[1]);
+	}
       }
-    }
-    List<String> sourceList = new ArrayList();
-    List<String> semanticTypeList = new ArrayList();
-    String docFormat = "freetext";
-    String resultFormat = "mmi";
-    if (params.containsKey("inputtext")) {
-      String inputtext = params.get("inputtext").replace("+", " ");
-      if (params.containsKey("sourcesString")) {
-	sourceList = Arrays.asList(params.get("sourcesString").split(","));
+      List<String> sourceList = new ArrayList();
+      List<String> semanticTypeList = new ArrayList();
+      String docFormat = "freetext";
+      String resultFormat = "mmi";
+      if (params.containsKey("inputtext")) {
+	String inputtext = params.get("inputtext").replace("+", " ");
+	if (params.containsKey("sourcesString")) {
+	  sourceList = Arrays.asList(params.get("sourcesString").split(","));
+	}
+	if (params.containsKey("semanticTypeString")) {
+	  semanticTypeList = Arrays.asList(params.get("semanticTypeString").split(","));
+	}
+	if (params.containsKey("docFormat")) {
+	  docFormat = params.get("docFormat");
+	}
+	if (params.containsKey("resultFormat")) {
+	  resultFormat = params.get("resultFormat");
+	}
+	return processAnnotatePlain(inputtext,
+				    docFormat,
+				    resultFormat,
+				    sourceList,
+				    semanticTypeList); 
       }
-      if (params.containsKey("semanticTypeString")) {
-	semanticTypeList = Arrays.asList(params.get("semanticTypeString").split(","));
-      }
-      if (params.containsKey("docFormat")) {
-	docFormat = params.get("docFormat");
-      }
-      if (params.containsKey("resultFormat")) {
-	resultFormat = params.get("resultFormat");
-      }
-      return processAnnotatePlain(inputtext,
-				  docFormat,
-				  resultFormat,
-				  sourceList,
-				  semanticTypeList); 
-    }
-    return "inputtext param is missing.";
+      return "inputtext param is missing.";
+    } 
   }
 
   @GET @Path("/lookup")
   public String processLookupGet(@Context HttpServletRequest hsr)
   {
-    // return "Error: this server only accepts POST requests for /lookup.";
-    String queryString = hsr.getQueryString();
-    Map<String,String> params = new HashMap<String,String>();
-    for (String paramStr: queryString.split("&")) {
-      String[] kv = paramStr.split("=");
-      if (kv.length == 2) {
-	params.put(kv[0], kv[1]);
+    if (hsr == null) {
+      return "Error: this server only accepts POST requests for /lookup.";
+    } else {
+      String queryString = hsr.getQueryString();
+      Map<String,String> params = new HashMap<String,String>();
+      for (String paramStr: queryString.split("&")) {
+	String[] kv = paramStr.split("=");
+	if (kv.length == 2) {
+	  params.put(kv[0], kv[1]);
+	}
       }
+      List<String> sourceList = new ArrayList();
+      List<String> semanticTypeList = new ArrayList();
+      String docFormat = "freetext";
+      String resultFormat = "mmi";
+      if (params.containsKey("inputtext")) {
+	String inputtext = params.get("inputtext").replace("+", " ");
+	if (params.containsKey("sourcesString")) {
+	  sourceList = Arrays.asList(params.get("sourcesString").split(","));
+	}
+	if (params.containsKey("semanticTypeString")) {
+	  semanticTypeList = Arrays.asList(params.get("semanticTypeString").split(","));
+	}
+	if (params.containsKey("docFormat")) {
+	  docFormat = params.get("docFormat");
+	}
+	if (params.containsKey("resultFormat")) {
+	  resultFormat = params.get("resultFormat");
+	}
+	return processAnnotatePlain(inputtext,
+				    docFormat,
+				    resultFormat,
+				    sourceList,
+				    semanticTypeList); 
+      }
+      return "inputtext param is missing.";
     }
-    List<String> sourceList = new ArrayList();
-    List<String> semanticTypeList = new ArrayList();
-    String docFormat = "freetext";
-    String resultFormat = "mmi";
-    if (params.containsKey("inputtext")) {
-      String inputtext = params.get("inputtext").replace("+", " ");
-      if (params.containsKey("sourcesString")) {
-	sourceList = Arrays.asList(params.get("sourcesString").split(","));
-      }
-      if (params.containsKey("semanticTypeString")) {
-	semanticTypeList = Arrays.asList(params.get("semanticTypeString").split(","));
-      }
-      if (params.containsKey("docFormat")) {
-	docFormat = params.get("docFormat");
-      }
-      if (params.containsKey("resultFormat")) {
-	resultFormat = params.get("resultFormat");
-      }
-      return processAnnotatePlain(inputtext,
-				  docFormat,
-				  resultFormat,
-				  sourceList,
-				  semanticTypeList); 
-    }
-    return "inputtext param is missing.";
   }
-  
-  
 
   /**
    * annotate inputtext return result as text/html
@@ -474,7 +481,12 @@ public class MetaMapLiteService
       }
       StringBuilder sb = new StringBuilder();
       if (resultFormat.equals("html")) {
-	String template = loadTemplate(rootPath + "/templates/result_html.html");
+	String template;
+	// if (docFormat.equals("sldiwi")) {
+	//   template = loadTemplate(rootPath + "/templates/result_preformatted.html");
+	// } else {
+	  template = loadTemplate(rootPath + "/templates/result_html.html");
+	// }
 	Map<String, Object> jcontext = new HashMap();
 	jcontext.put("inputtext", hightlightInputText(inputText, entityList, "em") );
 	jcontext.put("entitylistsize", Integer.toString(entityList.size()));
