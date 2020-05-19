@@ -1,6 +1,6 @@
 # A ReSTful service for MetaMapLite
 
-A Restful service with support for Web Browsers as well.
+A ReSTful service for MetaMapLite which includes support for Web Browsers.
 
 ## Compiling
 
