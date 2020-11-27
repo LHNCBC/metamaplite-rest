@@ -68,7 +68,7 @@ container if the servlet engine supports it.  Some modifications to
 MetaMapLiteFactory may be needed to support it.  This support will
 probably be added in a future release.
 
-# Specifying the MetaMapLite Version
+## Specifying the MetaMapLite Version
 
 The Maven project file (pom.xml) must be modified to specify which
 version of MetaMapLite you wish to use.  Also, for the latest version
