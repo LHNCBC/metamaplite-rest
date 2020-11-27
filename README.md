@@ -68,6 +68,16 @@ container if the servlet engine supports it.  Some modifications to
 MetaMapLiteFactory may be needed to support it.  This support will
 probably be added in a future release.
 
+# Specifying the MetaMapLite Version
+
+The Maven project file (pom.xml) must be modified to specify which
+version of MetaMapLite you wish to use.  Also, for the latest version
+of MetaMapLite, it will be necessary to run "mvn install" in the
+public\_mm\_lite directory to make it available when compiling
+metamaplite-rest.  The metamaplite version specified in the
+dependencies of the metamaplite-rest pom.xml should be the same as the
+version in the top of the public\_mm\_lite pom.xml.
+
 # ReSTFul MetaMapLite URLs
 
 ## Suggested Requests
