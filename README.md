@@ -1,6 +1,20 @@
 # A ReSTful service for MetaMapLite
 
-A ReSTful service for MetaMapLite which includes support for Web Browsers.
+A ReSTful service for MetaMapLite which includes support for Web
+Browsers.  This is an JAX-RS service implementated using Jersey
+(https://eclipse-ee4j.github.io/jersey/).
+
+## Configuring the Service
+
+In the directory: 'src/main/webapp/config/metamaplite.properties' the
+property: 'metamaplite.index.directory' to points to the dataset
+indexes to used by MetaMapLite.  If the indexes are in
+'src/main/webapp' then the path must be relative to 'src/main/webapp'.
+If the indexes reside outside of your application server then the path
+must be an absolute path.  This is also the case for the OpenNLP
+models used for part-of-speech tagging and phrase chunking (the
+properties: 'opennlp.en-pos.bin.path' and
+'opennlp.en-chunker.bin.path'.)
 
 ## Compiling
 
@@ -8,13 +22,16 @@ Requires Maven to compile:
 
     mvn package
 
+The command above will generate a war file suitable for loading into a
+servlet engine such as Apache Tomcat or Jetty.
+
 ## Development Directory Organization
 
 Below is a pictorial representation of a possible directory
 organization for a servlet containing MetaMapLite.  The
-main properties file "metamaplite.properties" resides in the "config"
+main properties file 'metamaplite.properties' resides in the 'config'
 directory.  The inverted file indexes used by MetaMapLite reside in
-the "ivf" directory.  The opennlp models reside in data/models
+the 'ivf' directory.  The opennlp models reside in data/models
 directory.
 
      sample-webapp/
@@ -72,7 +89,7 @@ probably be added in a future release.
 
 The Maven project file (pom.xml) must be modified to specify which
 version of MetaMapLite you wish to use.  Also, for the latest version
-of MetaMapLite, it will be necessary to run "mvn install" in the
+of MetaMapLite, it will be necessary to run 'mvn install' in the
 public\_mm\_lite directory to make it available when compiling
 metamaplite-rest.  The metamaplite version specified in the
 dependencies of the metamaplite-rest pom.xml should be the same as the
