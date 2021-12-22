@@ -7,8 +7,8 @@ import java.io.BufferedReader;
 import java.util.List;
 import java.util.ArrayList;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Describe class UMLSSemanticTypes here.
@@ -20,8 +20,8 @@ import org.apache.logging.log4j.Logger;
  * @version 1.0
  */
 public class UMLSSemanticTypes {
-  /** log4j logger instance */
-  private static final Logger logger = LogManager.getLogger(UMLSSemanticTypes.class);
+  /** slf4j logger instance */
+  private static final Logger logger = LoggerFactory.getLogger(UMLSSemanticTypes.class);
 
   String listFilename = "data/SemanticTypes_2013AA.txt";
   
@@ -70,7 +70,7 @@ public class UMLSSemanticTypes {
 	TypeRecord typeRecord = 
 	  new TypeRecord(fields[0], fields[1], fields[2]);
 	this.semanticTypeList.add(typeRecord);
-	logger.info(typeRecord);
+	logger.debug(typeRecord.toString());
       }
       br.close();
     } catch (FileNotFoundException fnfe) {

@@ -42,8 +42,8 @@ import javax.servlet.http.HttpServletRequest;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import gov.nih.nlm.nls.ner.MetaMapLite;
 import gov.nih.nlm.nls.metamap.document.FreeText;
@@ -61,14 +61,15 @@ import bioc.BioCDocument;
 import bioc.BioCPassage;
 
 import gov.nih.nlm.nls.rest.EvScoreComparator;
+import gov.nih.nlm.nls.rest.EscapeHTML;
   
 @Path("/")
 public class MetaMapLiteService
 {
   @Context
   private ServletContext context;
-  /** log4j logger instance */
-  private static final Logger logger = LogManager.getLogger(MetaMapLiteService.class);
+  /** slf4j logger instance */
+  private static final Logger logger = LoggerFactory.getLogger(MetaMapLiteService.class);
 
   Properties properties;
   // rootPath, dataPath and configPath are instantiated by InteractiveWebAppConfig class.
@@ -449,7 +450,7 @@ public class MetaMapLiteService
 
   /**
    * annotate inputtext return result as text/html
-   * @param inputText text to be annotated 
+   * @param inputTextString text to be annotated
    * @param docFormat parse input text using specified docFormat 
    * @param resultFormat format result using supplied format or html if no format supplied.
    * @param sourcesStringList restrict results to supplied sources or use all sources if empty or "all"
@@ -457,7 +458,7 @@ public class MetaMapLiteService
    * types or use all sources if empty or "all"
    * @return response as html
    */
-  public String processAnnotateHtml(String inputText,
+  public String processAnnotateHtml(String inputTextString,
 				    String docFormat,
 				    String resultFormat,
 				    List<String> sourcesStringList,
@@ -467,6 +468,8 @@ public class MetaMapLiteService
     String rootPath = this.context.getRealPath("/");
     Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
     EvScoreComparator evComparator = (EvScoreComparator)this.context.getAttribute("evcomparator");
+    // sanitize input text string
+    String inputText = EscapeHTML.escapeHTML(inputTextString);
     try {
       if (inputText == null) {
 	return "Error: Required field inputtext not supplied.";
@@ -539,12 +542,14 @@ public class MetaMapLiteService
     }
   }
 
-  public String processAnnotateJson(String inputText, String docFormat, String resultFormat,
+  public String processAnnotateJson(String inputTextString, String docFormat, String resultFormat,
 				    List<String> sourcesString, List<String> semanticTypesString)
   {
-    System.err.println("processAnnotateJson(" + inputText + " ... )");
+    System.err.println("processAnnotateJson(" + inputTextString + " ... )");
     // use servlet context to set various variables
     String rootPath = this.context.getRealPath("/");
+    // sanitize input text string
+    String inputText = EscapeHTML.escapeHTML(inputTextString);
     Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
     try {
       System.err.println("processAnnotateJson( " + inputText + " ... )");
@@ -569,12 +574,14 @@ public class MetaMapLiteService
     }
   }
 
-  public String processAnnotateXml(String inputText, String docFormat, String resultFormat,
+  public String processAnnotateXml(String inputTextString, String docFormat, String resultFormat,
 				   List<String> sourcesString, List<String> semanticTypesString)
   {
     // use servlet context to set various variables
     String rootPath = this.context.getRealPath("/");
     Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
+    // sanitize input text string
+    String inputText = EscapeHTML.escapeHTML(inputTextString);
     try {
       List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
@@ -599,19 +606,20 @@ public class MetaMapLiteService
 
   /**
    * Process and return result without any extraneous formatting text.
-   * @param inputText input text
+   * @param inputTextString input text
    * @param docFormat document format
    * @param resultFormat output result format
    * @param sourcesString string containing list of sources to restrict to.
    * @param semanticTypesString string containing list of semantic types to restrict to.
    * @return string containing formatted result sans HTML wrapper
    */
-  public String processAnnotatePlain(String inputText, String docFormat, String resultFormat,
+  public String processAnnotatePlain(String inputTextString, String docFormat, String resultFormat,
 				     List<String> sourcesString, List<String> semanticTypesString)
   {
     // use servlet context to set various variables
     String rootPath = this.context.getRealPath("/");
     Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
+    String inputText = EscapeHTML.escapeHTML(inputTextString);
     try {
       if (inputText == null) {
 	return "Error: Required field inputtext not supplied.";
