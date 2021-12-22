@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.util.Optional;
 import java.util.Map;
@@ -14,7 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.Enumeration;
-import java.util.Map;  
+import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
@@ -92,18 +93,33 @@ public class MetaMapLiteService
    */
   @Context
   public void setServletContext(ServletContext context) {
-    logger.info("servlet context set here");
+    logger.info("setting servlet context...");
     this.context = context;
     String rootPath = this.context.getRealPath("/");
     MetaMapLite instance = MetaMapLiteFactory.newInstance(rootPath);
+    if (this.metaMapLiteInst == null) {
+      this.metaMapLiteInst = instance;
+    }
+
     this.context.setAttribute("MetaMapLiteInstance", instance);
     Properties properties = MetaMapLiteFactory.getMetaMapProperties(rootPath);
+    if (this.properties == null) {
+      this.properties = properties;
+    }
     this.context.setAttribute("MetaMapLiteProperties", properties);
     Comparator evComparator = new EvScoreComparator();
     this.context.setAttribute("evcomparator", evComparator);
     UMLSSemanticTypes umlsSemanticTypes =
       new UMLSSemanticTypes(rootPath + "/data/SemanticTypes_2013AA.txt");
     this.context.setAttribute("semtypeinst", umlsSemanticTypes);
+
+    // load tagger from servlet context
+    String posModelPath =
+      properties.getProperty("opennlp.en-pos.bin.path",
+			     "WEB-INF/resources/en-pos-maxent.bin");
+    InputStream instream =
+      context.getResourceAsStream(posModelPath);
+    instance.setPoSTagger(instream);
   }
 
   /**
@@ -128,23 +144,22 @@ public class MetaMapLiteService
     return sb.toString();
   }
 
-  @GET @Path("/")
+  @GET 
   public String frontPage(@Context HttpServletRequest hsr)
   {
+    String rootPath = this.context.getRealPath("/");
+    String servletPath = hsr.getServletPath();
+    String contextPath = hsr.getContextPath();
+    String pathInfo = hsr.getPathInfo();
     MetaMapLite metaMapLiteInst = (MetaMapLite)this.context.getAttribute("MetaMapLiteInstance");
     if (metaMapLiteInst == null) {
       // if metaMapLiteInst is not present instantiate a new MetaMapLite instance
-      String rootPath = this.context.getRealPath("/");
       MetaMapLite instance = MetaMapLiteFactory.newInstance(rootPath);
       this.context.setAttribute("MetaMapLiteInstance", instance);
     }
     UMLSSemanticTypes umlsSemanticTypes =
       (UMLSSemanticTypes)this.context.getAttribute("semtypeinst");
     Map<String, Object> jcontext = new HashMap();
-    String rootPath = this.context.getRealPath("/");
-    String servletPath = hsr.getServletPath();
-    String contextPath = hsr.getContextPath();
-    String pathInfo = hsr.getPathInfo();
     String formTemplate = loadTemplate(rootPath + "/templates/form.html");
     jcontext.put("action", contextPath + servletPath + "/annotate");
     jcontext.put("dflist", BioCDocumentLoaderRegistry.listNameSet());
@@ -240,90 +255,6 @@ public class MetaMapLiteService
     return "list supported response content types (TBD)";
   }
 
-  @GET @Path("/annotate")
-  public String processAnnotateGet(@Context HttpServletRequest hsr)
-  {
-    if (hsr == null) {
-      return "Error: this server only accepts POST requests for /annotate.";
-    } else {
-      String queryString = hsr.getQueryString();
-      Map<String,String> params = new HashMap<String,String>();
-      for (String paramStr: queryString.split("&")) {
-	String[] kv = paramStr.split("=");
-	if (kv.length == 2) {
-	  params.put(kv[0], kv[1]);
-	}
-      }
-      List<String> sourceList = new ArrayList();
-      List<String> semanticTypeList = new ArrayList();
-      String docFormat = "freetext";
-      String resultFormat = "mmi";
-      if (params.containsKey("inputtext")) {
-	String inputtext = params.get("inputtext").replace("+", " ");
-	if (params.containsKey("sourcesString")) {
-	  sourceList = Arrays.asList(params.get("sourcesString").split(","));
-	}
-	if (params.containsKey("semanticTypeString")) {
-	  semanticTypeList = Arrays.asList(params.get("semanticTypeString").split(","));
-	}
-	if (params.containsKey("docFormat")) {
-	  docFormat = params.get("docFormat");
-	}
-	if (params.containsKey("resultFormat")) {
-	  resultFormat = params.get("resultFormat");
-	}
-	return processAnnotatePlain(inputtext,
-				    docFormat,
-				    resultFormat,
-				    sourceList,
-				    semanticTypeList); 
-      }
-      return "inputtext param is missing.";
-    } 
-  }
-
-  @GET @Path("/lookup")
-  public String processLookupGet(@Context HttpServletRequest hsr)
-  {
-    if (hsr == null) {
-      return "Error: this server only accepts POST requests for /lookup.";
-    } else {
-      String queryString = hsr.getQueryString();
-      Map<String,String> params = new HashMap<String,String>();
-      for (String paramStr: queryString.split("&")) {
-	String[] kv = paramStr.split("=");
-	if (kv.length == 2) {
-	  params.put(kv[0], kv[1]);
-	}
-      }
-      List<String> sourceList = new ArrayList();
-      List<String> semanticTypeList = new ArrayList();
-      String docFormat = "freetext";
-      String resultFormat = "mmi";
-      if (params.containsKey("inputtext")) {
-	String inputtext = params.get("inputtext").replace("+", " ");
-	if (params.containsKey("sourcesString")) {
-	  sourceList = Arrays.asList(params.get("sourcesString").split(","));
-	}
-	if (params.containsKey("semanticTypeString")) {
-	  semanticTypeList = Arrays.asList(params.get("semanticTypeString").split(","));
-	}
-	if (params.containsKey("docFormat")) {
-	  docFormat = params.get("docFormat");
-	}
-	if (params.containsKey("resultFormat")) {
-	  resultFormat = params.get("resultFormat");
-	}
-	return processAnnotatePlain(inputtext,
-				    docFormat,
-				    resultFormat,
-				    sourceList,
-				    semanticTypeList); 
-      }
-      return "inputtext param is missing.";
-    }
-  }
-
   /**
    * annotate inputtext return result as text/html
    * @param inputText text to be annotated 
@@ -344,6 +275,8 @@ public class MetaMapLiteService
   {
     // use servlet context to set various variables
     MetaMapLite metaMapLiteInst = (MetaMapLite)this.context.getAttribute("MetaMapLiteInstance");
+
+    // sanitize input text string
     String[] sourceList;
     if (sourcesStringList != null) {
       if (sourcesStringList.size() == 0) {
@@ -377,6 +310,13 @@ public class MetaMapLiteService
       logger.info("semanticTypeList=" + semanticTypeList);
     }
 
+    // If input text is empty then return empty entity list; don't
+    // process.
+    if (inputText.trim().equals("")) {
+      logger.warn("processText:inputText is empty: ", inputText);
+      return new ArrayList<Entity>();
+    }
+
     String documentFormat = "freetext";
     if (docFormat != null) {
       documentFormat = docFormat;
@@ -387,7 +327,9 @@ public class MetaMapLiteService
     } else {
       docLoader = new FreeText();
     }
-    List<BioCDocument> documentList = docLoader.readAsBioCDocumentList(new StringReader(inputText));
+    List<BioCDocument> documentList =
+      docLoader.readAsBioCDocumentList
+      (new StringReader(inputText));
     List<Entity> entityList = metaMapLiteInst.processDocumentList(documentList);
     return entityList;
   }
@@ -469,16 +411,18 @@ public class MetaMapLiteService
     Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
     EvScoreComparator evComparator = (EvScoreComparator)this.context.getAttribute("evcomparator");
     // sanitize input text string
-    String inputText = EscapeHTML.escapeHTML(inputTextString);
+    String inputText = EscapeHTML.stripXSS
+      (EscapeHTML.escapeHTML(inputTextString));
     try {
       if (inputText == null) {
 	return "Error: Required field inputtext not supplied.";
       }
-      List<Entity> entityList = processText(inputText, docFormat, resultFormat,
+      List<Entity> entityList = processText(inputText,
+					    docFormat, resultFormat,
 					    sourcesStringList, semanticTypesStringList);
-      logger.info("resultFormat=" + resultFormat);
-      logger.info("sourcesString=" + sourcesStringList);
-      logger.info("semanticTypesString=" + semanticTypesStringList);
+      // logger.info("resultFormat=" + resultFormat);
+      // logger.info("sourcesString=" + sourcesStringList);
+      // logger.info("semanticTypesString=" + semanticTypesStringList);
       if (resultFormat.length() == 0) {
 	resultFormat = "html";
       }
@@ -537,8 +481,10 @@ public class MetaMapLiteService
       //   ", sources: " + sourcesString +
       //   ", semtypes: " + semanticTypesString;
     } catch (Exception e) {
-      logger.error("Internal server exception: ", e);
-      return "Internal server error, contact administrator.";
+      logger.error("Internal server exception: ANNOTATE HTML: ", e);
+      System.err.println("Internal server exception: ANNOTATE HTML: " + e);
+      this.context.log("Internal server exception: ANNOTATE HTML: " + e);
+      return "Internal server error, contact administrator (ANNOTATE HTML).";
     }
   }
 
@@ -549,7 +495,7 @@ public class MetaMapLiteService
     // use servlet context to set various variables
     String rootPath = this.context.getRealPath("/");
     // sanitize input text string
-    String inputText = EscapeHTML.escapeHTML(inputTextString);
+    String inputText = EscapeHTML.stripXSS(EscapeHTML.escapeHTML(inputTextString));
     Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
     try {
       System.err.println("processAnnotateJson( " + inputText + " ... )");
@@ -569,8 +515,10 @@ public class MetaMapLiteService
       }
       return new JSONObject().put("result", sb.toString()).toString();
     } catch (Exception e) {
-      logger.error("Internal server exception: ", e);
-      return "Internal server error, contact administrator.";
+      logger.error("Internal server exception: ANNOTATE JSON: ", e);
+      System.err.println("Internal server exception: ANNOTATE JSON: " + e);
+      this.context.log("Internal server exception: ANNOTATE JSON: " + e);
+      return "Internal server error, contact administrator. (ANNOTATE JSON)";
     }
   }
 
@@ -581,7 +529,7 @@ public class MetaMapLiteService
     String rootPath = this.context.getRealPath("/");
     Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
     // sanitize input text string
-    String inputText = EscapeHTML.escapeHTML(inputTextString);
+    String inputText = EscapeHTML.stripXSS(EscapeHTML.escapeHTML(inputTextString));
     try {
       List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
@@ -599,8 +547,10 @@ public class MetaMapLiteService
       }
       return sb.toString();
     } catch (Exception e) {
-      logger.error("Internal server exception: ", e);
-      return "Internal server error, contact administrator.";
+      logger.error("Internal server exception: ANNOTATE XML: ", e);
+      System.err.println("Internal server exception: ANNOTATE XML: " + e);
+      this.context.log("Internal server exception: ANNOTATE XML: " + e);
+      return "Internal server error, contact administrator. (ANNOTATE XML)";
     }
   }
 
@@ -619,7 +569,8 @@ public class MetaMapLiteService
     // use servlet context to set various variables
     String rootPath = this.context.getRealPath("/");
     Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
-    String inputText = EscapeHTML.escapeHTML(inputTextString);
+    // sanitize input text string
+    String inputText = EscapeHTML.stripXSS(EscapeHTML.escapeHTML(inputTextString));
     try {
       if (inputText == null) {
 	return "Error: Required field inputtext not supplied.";
@@ -640,8 +591,10 @@ public class MetaMapLiteService
       }
       return sb.toString();
     } catch (Exception e) {
-      logger.error("Internal server exception: ", e);
-      return "Internal server error, contact administrator.";
+      logger.error("Internal server exception: ANNOTATE PLAIN: ", e);
+      System.err.println("Internal server exception: ANNOTATE PLAIN: " + e);
+      this.context.log("Internal server exception: ANNOTATE PLAIN: " + e);
+      return "Internal server error, contact administrator. (ANNOTATE PLAIN)";
     }
   }
 
