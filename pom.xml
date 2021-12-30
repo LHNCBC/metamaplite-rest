@@ -90,7 +90,7 @@
     <dependency>
       <groupId>gov.nih.nlm.nls</groupId>
       <artifactId>metamaplite</artifactId>
-      <version>3.6.2rc5</version>
+      <version>3.6.2rc7</version>
     </dependency>
     
   </dependencies>
