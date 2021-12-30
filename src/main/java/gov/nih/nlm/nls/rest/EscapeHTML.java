@@ -81,7 +81,6 @@ public class EscapeHTML {
     return value;
   }
 
-
   public static void main(String[] args) {
     String[] stringList = { "<a href=\"https://ii.nlm.nih.gov/\">pneumonia</a>",
 			    "<a href=\"https://ii.nlm.nih.gov/\">cold</a>",
