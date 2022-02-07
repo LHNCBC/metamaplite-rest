@@ -403,8 +403,8 @@ public class MetaMapLiteService
   public String processAnnotateHtml(String inputTextString,
 				    String docFormat,
 				    String resultFormat,
-				    List<String> sourcesStringList,
-				    List<String> semanticTypesStringList)
+				    List<String> sourcesStringList0,
+				    List<String> semanticTypesStringList0)
   {
     // use servlet context to set various variables
     String rootPath = this.context.getRealPath("/");
@@ -413,9 +413,14 @@ public class MetaMapLiteService
     // sanitize input text string
     String inputText = EscapeHTML.stripXSS
       (EscapeHTML.escapeHTML(inputTextString));
+    List<String> sourcesStringList = EscapeHTML.checkSymbols(sourcesStringList0);
+    List<String> semanticTypesStringList = EscapeHTML.checkSymbols(semanticTypesStringList0);
     try {
       if (inputText == null) {
 	return "Error: Required field inputtext not supplied.";
+      }
+      if (EscapeHTML.isValidSymbol(resultFormat) == false) {
+	return "Error: invalid resultFormat, check form.";
       }
       List<Entity> entityList = processText(inputText,
 					    docFormat, resultFormat,
@@ -496,6 +501,9 @@ public class MetaMapLiteService
     String rootPath = this.context.getRealPath("/");
     // sanitize input text string
     String inputText = EscapeHTML.stripXSS(EscapeHTML.escapeHTML(inputTextString));
+    if (EscapeHTML.isValidSymbol(resultFormat) == false) {
+      return "Error: invalid resultFormat, check form.";
+    }
     Properties properties = (Properties)this.context.getAttribute("MetaMapLiteProperties");
     try {
       System.err.println("processAnnotateJson( " + inputText + " ... )");
@@ -531,6 +539,9 @@ public class MetaMapLiteService
     // sanitize input text string
     String inputText = EscapeHTML.stripXSS(EscapeHTML.escapeHTML(inputTextString));
     try {
+      if (EscapeHTML.isValidSymbol(resultFormat) == false) {
+	return "Error: invalid resultFormat, check form.";
+      }
       List<Entity> entityList = processText(inputText, docFormat, resultFormat,
 					    sourcesString, semanticTypesString);
       StringBuilder sb = new StringBuilder();
@@ -572,6 +583,9 @@ public class MetaMapLiteService
     // sanitize input text string
     String inputText = EscapeHTML.stripXSS(EscapeHTML.escapeHTML(inputTextString));
     try {
+      if (EscapeHTML.isValidSymbol(resultFormat) == false) {
+	return "Error: invalid resultFormat, check form.";
+      }
       if (inputText == null) {
 	return "Error: Required field inputtext not supplied.";
       }

@@ -4,11 +4,14 @@ package gov.nih.nlm.nls.rest;
 /**
  * Utility for escaping HTML in input text.
  */
-import java.lang.StringBuilder;
+import java.util.List;
+import java.util.ArrayList;  
 import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 // import ESSAPI;
 
 public class EscapeHTML {
+  private static Pattern validSymbolPattern = Pattern.compile("^[\\w\\d]+$");
 
   /**
    * Escape HTML in input string.
@@ -81,7 +84,31 @@ public class EscapeHTML {
     return value;
   }
 
+
+  public static boolean isValidSymbol(String symbol) {
+    Matcher matcher = validSymbolPattern.matcher(symbol);
+    return matcher.matches();
+  }
+
+  /**
+   * If symbol contains any character other than letters and numbers
+   * then discard it.
+   *
+   * @param symbolList list of symbols to be checked and removed if necessary.
+   * @return new symbol list with invalid symbols removed
+  */
+  public static List<String> checkSymbols(List<String> symbolList) {
+    List<String> newSymbolList = new ArrayList<String>();
+    for (String symbol: symbolList) {
+      if (isValidSymbol(symbol)) {
+	newSymbolList.add(symbol);
+      }
+    }
+    return newSymbolList;
+  }
+
   public static void main(String[] args) {
+    System.out.println("test escapeHTML");
     String[] stringList = { "<a href=\"https://ii.nlm.nih.gov/\">pneumonia</a>",
 			    "<a href=\"https://ii.nlm.nih.gov/\">cold</a>",
 			    "<a href=\"https://ii.nlm.nih.gov/\">culture</a>",
@@ -89,5 +116,23 @@ public class EscapeHTML {
     for (String s: stringList) {
       System.out.println(s + " -> " + escapeHTML(s));
     }
+    
+    System.out.println("test checkSymbols");
+    List<String> symbolList = new ArrayList<String>();
+    symbolList.add("MESH2020");
+    symbolList.add("<a href=\"https://ii.nlm.nih.gov/\">pneumonia</a>");
+    symbolList.add("sosy");
+    System.out.println("original symbol list:");
+    for (String s: symbolList) {
+      System.out.println(" " + s);
+    }
+    List<String> newSymbolList = checkSymbols(symbolList);
+    System.out.println("new symbol list:");
+    for (String s: newSymbolList) {
+      System.out.println(" " + s);
+    }
+
+
+    
   }
 }
