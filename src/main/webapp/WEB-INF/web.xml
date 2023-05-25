@@ -21,6 +21,11 @@
         <url-pattern>/rest/*</url-pattern>
     </servlet-mapping>
 
+    <error-page>
+        <error-code>404</error-code>
+        <location>/WEB-INF/errorpages/404.html</location>
+    </error-page>
+
     <!-- Set character encoding to UTF-8 before request.getParameter() is called -->
     <!-- see https://rogerkeays.com/servletrequest-setcharactercoding-ignored -->
     <filter>
