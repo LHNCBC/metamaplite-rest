@@ -3,6 +3,7 @@ package gov.nih.nlm.nls.rest;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.File;
 import java.util.Map;
 import java.util.Properties;
 import org.slf4j.Logger;
@@ -37,6 +38,20 @@ public class MetaMapLiteFactory {
 
   }
 
+  public static String resolveFilePathProperty(Properties properties,
+					       String rootPath,
+					       String propertyName,
+					       String defaultFilepath) {
+    String filepath = properties.getProperty(propertyName, defaultFilepath);
+    if (new File(filepath).exists()) {
+      properties.setProperty(propertyName, filepath);
+      return filepath;
+    } else {
+      properties.setProperty(propertyName, rootPath + "/" + filepath);
+      return rootPath + "/" + filepath;
+    }
+  }
+
   public static Properties getMetaMapProperties(String rootPath) {
     String configPath = rootPath + "/config";
     String dataPath = rootPath + "/data";
@@ -47,7 +62,6 @@ public class MetaMapLiteFactory {
       String configPropertyFilename = configPath + "/" +
  	System.getProperty("metamaplite.property.file",
 			   "metamaplite.properties");
-
       Properties properties = new Properties();
       
       logger.info("0: metamaplite.index.directory: " +
@@ -63,10 +77,9 @@ public class MetaMapLiteFactory {
 
       // If user just defined metamaplite.index.directory, then add
       // missing index properties
-      properties.setProperty("metamaplite.index.directory",
-			     rootPath + "/" +
-			     properties.getProperty("metamaplite.index.directory",
-						    "data/ivf/strict"));
+      
+      resolveFilePathProperty(properties, rootPath,
+			      "metamaplite.index.directory", "data/ivf/strict");
       MetaMapLite.expandIndexDir(properties);
       
       logger.info("1: metamaplite.index.directory: " +
@@ -99,22 +112,14 @@ public class MetaMapLiteFactory {
       // 			     properties.getProperty("metamaplite.ivf.meshtcrelaxedindex",
       // 						    "ivf/strict/indices/meshtcrelaxedindex"));
       
-      properties.setProperty("metamaplite.excluded.termsfile",
-			     rootPath + "/" +
-			     properties.getProperty("metamaplite.excluded.termsfile",
-						    "specialterms.txt"));
-      properties.setProperty("opennlp.en-pos.bin.path",
-			     rootPath + "/" +
-			     properties.getProperty("opennlp.en-pos.bin.path",
-						    "models/en-pos-maxent.bin"));
-      properties.setProperty("opennlp.en-sent.bin.path",
-			     rootPath + "/" +
-			     properties.getProperty("opennlp.en-sent.bin.path",
-						    "models/en-sent.bin"));
-      properties.setProperty("opennlp.en-chunker.bin.path",
-			     rootPath + "/" +
-			     properties.getProperty("opennlp.en-chunker.bin.path",
-						    "models/en-chunker.bin"));
+      resolveFilePathProperty(properties, rootPath,
+			      "metamaplite.excluded.termsfile", "specialterms.txt");
+      resolveFilePathProperty(properties, rootPath,
+			      "opennlp.en-pos.bin.path", "models/en-pos-maxent.bin");
+      resolveFilePathProperty(properties, rootPath,
+			      "opennlp.en-sent.bin.path", "models/en-sent.bin");
+      resolveFilePathProperty(properties, rootPath,
+			      "opennlp.en-chunker.bin.path", "models/en-chunker.bin");
       return properties;
     } catch (FileNotFoundException fnfe) {
       throw new RuntimeException(fnfe);
